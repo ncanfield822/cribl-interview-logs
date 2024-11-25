@@ -64,3 +64,13 @@ A user-friendly name for the server if desired
 ## Limitations
 The parser used for files currently only supports UTF-8 and single character encodings, and in fact
 the app is setup to assume UTF-8 encoding for all files it encounters.
+
+## Performance
+It takes approximately 84ms for the ReverseFileReader implementation to read all 196037 lines of 
+Shakespeare's complete works into memory on the test machine.
+
+## Planned Improvements
+Currently on the roadmap we have a few items:
+
+- Add aggregation functionality to ping and collect logs from multiple servers
+- Add a simple webpage to fetch and display results
