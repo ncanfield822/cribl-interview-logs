@@ -15,29 +15,25 @@ public class LogReadRequestHandler {
     private static Logger LOGGER = Logger.getLogger("LogReadRequestHandler");
 
     /**
-     * Searches filePath for logs and parses any found there. If filePath is a directory, it will recursively search it.
+     * Searches logFile for logs and parses any found there. If logFile is a directory, it will recursively search it.
      *
-     * @param filePath the path to search
+     * @param logFile the file/directory to search
      * @param maxLines the max lines per file to return, or -1 for unlimited
      * @param searchTerm the search term to use, or null to return any ines
      * @return A list of {@link LogFile} for each file checked
-     * @throws IllegalArgumentException if the specified file path does not exist or cannot be rad
+     * @throws LogReaderException if the specified file does not exist
      */
-    public static List<LogFile> readLogs(Path filePath, Integer maxLines, String searchTerm) throws LogReaderException {
+    public static List<LogFile> readLogs(File logFile, Integer maxLines, String searchTerm) throws LogReaderException {
         List<LogFile> logs = new ArrayList<>();
-        File logFile = new File(filePath.toUri());
 
-        // We validate the dir on startup, this should only happen if an invalid path is passed in the API
-        if (!logFile.exists()){
+        if (!logFile.exists()) {
             throw new LogReaderException("The log files specified do not exist");
-        } else if (!logFile.canRead()) {
-            throw new LogReaderException("The log files specified cannot be read");
         }
 
         if (logFile.isDirectory()) {
             logs.addAll(readDirectory(logFile, maxLines, searchTerm));
         } else if (logFile.isFile()) {
-            logs.add(readFile(filePath, maxLines, searchTerm));
+            logs.add(readFile(logFile.toPath(), maxLines, searchTerm));
         }
 
         return logs;

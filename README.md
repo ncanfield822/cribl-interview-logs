@@ -63,7 +63,7 @@ A user-friendly name for the server if desired
 
 ## Limitations
 The parser used for files currently only supports UTF-8 and single character encodings, and in fact
-the app is setup to assume UTF-8 encoding for all files it encounters.
+the app is setup to assume UTF-8 encoding for all files it encounters (Even if it's mot a text file).
 
 ## Performance
 It takes approximately 84ms for the ReverseFileReader implementation to read all 196037 lines of 
