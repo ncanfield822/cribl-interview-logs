@@ -15,7 +15,7 @@ public class LogReadRequestHandlerTest {
     @Test
     public void readsLogs() throws LogReaderException {
         File testFile = new File(TEST_RESOURCE_PATH);
-        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null);
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
 
         //Reads nine of them
         assertEquals(9, logFiles.size());
@@ -31,7 +31,7 @@ public class LogReadRequestHandlerTest {
     @Test
     public void readsUnlimitedLines() throws LogReaderException {
         File testFile = new File(TEST_RESOURCE_PATH + "/secondLevelDir/randomFile2.txt");
-        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, -1, null);
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, -1, null, TEST_RESOURCE_PATH.length());
 
         assertEquals(1, logFiles.size());
         assertEquals(196037, logFiles.get(0).logLines().size());
@@ -40,7 +40,7 @@ public class LogReadRequestHandlerTest {
     @Test
     public void readsSpecificLogs() throws LogReaderException {
         File testFile = new File(TEST_RESOURCE_PATH + "/emptyFile.txt");
-        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null);
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
 
         //Reads just that file
         assertEquals(1, logFiles.size());
@@ -51,7 +51,7 @@ public class LogReadRequestHandlerTest {
     public void readsLogsXLines() throws LogReaderException {
         //Returns expected lines from one file
         File testFile = new File(TEST_RESOURCE_PATH + "/numberFile.txt");
-        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 4, null);
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 4, null, TEST_RESOURCE_PATH.length());
         assertEquals(1, logFiles.size());
         assertEquals(4, logFiles.get(0).logLines().size());
 
@@ -61,7 +61,7 @@ public class LogReadRequestHandlerTest {
 
         //Returns only one line from each file (or less for the empty file)
         testFile = new File(TEST_RESOURCE_PATH);
-        logFiles = LogReadRequestHandler.readLogs(testFile, 1, null);
+        logFiles = LogReadRequestHandler.readLogs(testFile, 1, null, TEST_RESOURCE_PATH.length());
         assertEquals(9, logFiles.size());
         assertTrue(logFiles.stream().allMatch(logfile -> logfile.logLines().size() <= 1));
     }
@@ -70,7 +70,7 @@ public class LogReadRequestHandlerTest {
     public void searchesLogs() throws LogReaderException {
         //Returns only lines containing the word "This"
         File testFile = new File(TEST_RESOURCE_PATH);
-        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, "This");
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, "This", TEST_RESOURCE_PATH.length());
 
         //Returns all nine files even ones that did not contain "This"
         assertEquals(9, logFiles.size());
@@ -83,7 +83,7 @@ public class LogReadRequestHandlerTest {
     @Test
     public void withAllParameters() throws LogReaderException {
         File testFile = new File(TEST_RESOURCE_PATH + "/longLineFile.txt");
-        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1, "This");
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1, "This", TEST_RESOURCE_PATH.length());
 
         assertEquals(1, logFiles.size());
         assertEquals(1, logFiles.get(0).logLines().size());
@@ -94,6 +94,16 @@ public class LogReadRequestHandlerTest {
     @Test
     public void exceptionWhenNoFileExists() {
         File testFile = new File(TEST_RESOURCE_PATH + "/notAFile.txt");
-        assertThrows(LogReaderException.class, () -> LogReadRequestHandler.readLogs(testFile, 1000, null));
+        assertThrows(LogReaderException.class, () -> LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length()));
+    }
+
+    @Test
+    public void trimsBasePathFromResponse() throws LogReaderException {
+        File testFile = new File(TEST_RESOURCE_PATH + "/secondLevelDir/randomFile.txt");
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1, "This", TEST_RESOURCE_PATH.length());
+        assertEquals(1, logFiles.size());
+
+        // This will have different results on windows vs linux
+        assertTrue("secondLevelDir/randomFile.txt".equals(logFiles.get(0).filePath()) || "secondLevelDir\\randomFile.txt".equals(logFiles.get(0).filePath()));
     }
 }

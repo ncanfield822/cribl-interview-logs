@@ -19,11 +19,11 @@ public class LogReadRequestHandler {
      *
      * @param logFile the file/directory to search
      * @param maxLines the max lines per file to return, or -1 for unlimited
-     * @param searchTerm the search term to use, or null to return any ines
+     * @param searchTerm the search term to use, or null to return any lines
      * @return A list of {@link LogFile} for each file checked
      * @throws LogReaderException if the specified file does not exist
      */
-    public static List<LogFile> readLogs(File logFile, Integer maxLines, String searchTerm) throws LogReaderException {
+    public static List<LogFile> readLogs(File logFile, Integer maxLines, String searchTerm, Integer basePathSize) throws LogReaderException {
         List<LogFile> logs = new ArrayList<>();
 
         if (!logFile.exists()) {
@@ -31,9 +31,9 @@ public class LogReadRequestHandler {
         }
 
         if (logFile.isDirectory()) {
-            logs.addAll(readDirectory(logFile, maxLines, searchTerm));
+            logs.addAll(readDirectory(logFile, maxLines, searchTerm, basePathSize));
         } else if (logFile.isFile()) {
-            logs.add(readFile(logFile.toPath(), maxLines, searchTerm));
+            logs.add(readFile(logFile.toPath(), maxLines, searchTerm, basePathSize));
         }
 
         return logs;
@@ -47,13 +47,13 @@ public class LogReadRequestHandler {
      * @param searchTerm the search term to use, or null to return any ines
      * @return A list of {@link LogFile} for each file checked
      */
-    private static List<LogFile> readDirectory(File logDir, Integer maxLines, String searchTerm) {
+    private static List<LogFile> readDirectory(File logDir, Integer maxLines, String searchTerm, Integer basePathSize) {
         List<LogFile> logs = new ArrayList<>();
         for (File logFile : logDir.listFiles()) {
             if (logFile.isDirectory()) {
-                logs.addAll(readDirectory(logFile, maxLines, searchTerm));
+                logs.addAll(readDirectory(logFile, maxLines, searchTerm, basePathSize));
             } else if (logFile.isFile()) {
-                logs.add(readFile(logFile.toPath(), maxLines, searchTerm));
+                logs.add(readFile(logFile.toPath(), maxLines, searchTerm, basePathSize));
             }
         }
         return logs;
@@ -68,7 +68,7 @@ public class LogReadRequestHandler {
      * @param searchTerm the term to search for, or null to return all lines
      * @return a {@link LogFile} object containing the lines found or an error message
      */
-    private static LogFile readFile(Path filePath, Integer maxLines, String searchTerm) {
+    private static LogFile readFile(Path filePath, Integer maxLines, String searchTerm, Integer basePathSize) {
         LogFile logFile;
         ReverseFileReader reverseFileReader = null;
         String fileName = filePath.getFileName().toString();
@@ -87,10 +87,10 @@ public class LogReadRequestHandler {
                 }
             }
 
-            logFile = new LogFile(fileName, filePath.toString(), logLines, null);
+            logFile = new LogFile(fileName, filePath.toString().substring(basePathSize + 1), logLines, null);
         } catch (Exception e) {
             LOGGER.info("Exception reading file: " + e.getMessage());
-            logFile = new LogFile(fileName, filePath.toString(), null, "Encountered an exception reading the file");
+            logFile = new LogFile(fileName, filePath.toString().substring(basePathSize + 1), null, "Encountered an exception reading the file");
         } finally {
             if (reverseFileReader != null) {
                 try {

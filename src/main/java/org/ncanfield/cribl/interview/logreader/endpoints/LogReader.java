@@ -59,7 +59,8 @@ public class LogReader {
                 logFiles = LogReadRequestHandler.readLogs(
                         logFile,
                         logLines != null ? logLines : config.defaultLineLimit(),
-                        searchTerm);
+                        searchTerm,
+                        config.logDir().length());
             } catch (LogReaderException e) {
                 //We check the files exist before getting here, so this shouldn't happen but just in case.
                 errorMessages.add("The log files specified could not be read");
