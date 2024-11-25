@@ -60,3 +60,7 @@ This can be set to a negative number to disable this check and allow the API to 
 A user-friendly name for the server if desired
 
 **Default:** none
+
+## Limitations
+The parser used for files currently only supports UTF-8 and single character encodings, and in fact
+the app is setup to assume UTF-8 encoding for all files it encounters.
