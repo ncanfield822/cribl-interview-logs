@@ -66,7 +66,7 @@ any files outside this directory.
 
 This directory must be an absolute path.
 
-**Default:** /var/logs
+**Default:** /var/log
 
 ### DEFAULT_LOG_LINE_LIMIT
 This specifies the maximum number of lines to return if none is provided in the API.

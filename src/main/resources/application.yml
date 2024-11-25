@@ -1,5 +1,5 @@
 log-reader:
-  logDir: ${LOG_DIRECTORY:/var/logs}
+  logDir: ${LOG_DIRECTORY:/var/log}
   defaultLineLimit: ${DEFAULT_LOG_LINE_LIMIT:-1}
   friendlyName: ${LOG_SERVER_NAME:MyServer}
   logServers: ${LOG_SERVERS:self}
