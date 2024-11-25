@@ -73,7 +73,7 @@ This specifies the maximum number of lines to return if none is provided in the 
 
 This can be set to a negative number to disable this check and allow the API to request all lines from a log.
 
-**Default:** 10000
+**Default:** Unlimited
 
 ### LOG_SERVER_NAME
 A user-friendly name for the server if desired. If using aggregation, it's highly advised to set this.
