@@ -1,0 +1,4 @@
+This file has slightly longer lines than the others.
+This is so we can test that the buffer will actually load some lines in.
+To help with this, we'll also be setting the buffer size pretty low.
+Ten will work.

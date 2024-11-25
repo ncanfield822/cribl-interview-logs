@@ -1,0 +1,2 @@
+This line ends in \r\n
+This is the second line
