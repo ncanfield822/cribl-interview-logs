@@ -8,6 +8,12 @@ Once you've cloned the repo, you can run it right away with default settings:
 ./gradlew clean build bootRun
 ```
 
+You may have to first set the gradle wrapper to executable:
+
+```
+chmod +x gradlew
+```
+
 You can then pop over to http://localhost:8080/logs to take a look at the logs in the directory!
 
 You can also take a look at http://localhost:8080/aggregate, but you'll need some config and other 

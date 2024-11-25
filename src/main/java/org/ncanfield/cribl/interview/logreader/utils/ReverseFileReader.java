@@ -43,7 +43,7 @@ public class ReverseFileReader implements Closeable {
     }
 
     public boolean hasMoreData() {
-        return bufferOffset + remainingBytes > 0;
+        return bufferOffset + remainingBytes >= 0;
     }
 
     public String readLine() throws IOException, LogReaderException {
@@ -69,7 +69,8 @@ public class ReverseFileReader implements Closeable {
                 byte[] lineBytes = Arrays.copyOfRange(buffer, startIndex, lastNewline);
                 line = new String(lineBytes, charset);
                 // Move both the buffer offset and last new line to just before the found newline
-                bufferOffset -= newLineBytes;
+                // Move it at least one if this is the EOF so that the hasMoreData check returns false
+                bufferOffset -= Math.max(newLineBytes, 1);
                 lastNewline = bufferOffset + 1;
                 // We found a line and can break the loop
                 break;
@@ -149,7 +150,7 @@ public class ReverseFileReader implements Closeable {
             // Append spillover
             System.arraycopy(spillover, 0, newBuffer, dataSize - spillover.length, spillover.length);
             //Just in case the spillover contained a newline near the start
-            bufferOffset += spillover.length > newLines.get(0).length ? newLines.get(0).length : 1;
+            bufferOffset += Math.min(spillover.length, newLines.get(0).length);
         }
 
         //Catch edge cases where buffer refilled
