@@ -24,9 +24,18 @@ public class ReverseFileReader implements Closeable {
     private int lastNewline;
     private byte[] buffer;
 
+    /**
+     * Creates a new ReverseFileReader. Only UTF-8 and single byte encodings are currently supported
+     *
+     * @param charset the charset to use, only UTF-8 and single byte encodings are supported
+     * @param filePath the path to the file to read
+     * @param bufferSize the buffer size to use when reading the file
+     * @throws IOException if there's an exception loading the file in
+     * @throws LogReaderException if an unsupported charset is passed
+     */
     public ReverseFileReader(Charset charset, Path filePath, int bufferSize) throws IOException, LogReaderException {
         if (charset.newEncoder().maxBytesPerChar() != 1f && !StandardCharsets.UTF_8.equals(charset)) {
-            throw new LogReaderException("Only single byte encodings are supported at the moment");
+            throw new LogReaderException("Only single byte encodings and UTF-8 are supported at the moment");
         }
 
         this.charset = charset;
@@ -46,6 +55,13 @@ public class ReverseFileReader implements Closeable {
         return bufferOffset + remainingBytes >= 0;
     }
 
+    /**
+     * Reads the next line up in the file, or null
+     *
+     * @return the next line up in the file, or null if there are no more
+     * @throws IOException if there's an exception accessing
+     * @throws LogReaderException if there's an issue parsing the file
+     */
     public String readLine() throws IOException, LogReaderException {
         String line = null;
         while (bufferOffset > -1) {
@@ -112,7 +128,7 @@ public class ReverseFileReader implements Closeable {
      * @param spillover remaining bytes from the prior buffer
      * @return an array of bytes for the buffer
      * @throws IOException if there is an error reading from the file
-     * @throws IllegalStateException if the expected bytes could not be read from the file
+     * @throws LogReaderException if the expected bytes could not be read from the file
      */
     private byte[] fillBuffer(byte[] spillover) throws IOException, LogReaderException {
         byte[] newBuffer;
