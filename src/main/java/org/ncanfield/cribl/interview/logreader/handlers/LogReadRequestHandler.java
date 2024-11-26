@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class LogReadRequestHandler {
-    private static Logger LOGGER = Logger.getLogger("LogReadRequestHandler");
+    private static final Logger LOGGER = Logger.getLogger("LogReadRequestHandler");
 
     /**
      * Searches logFile for logs and parses any found there. If logFile is a directory, it will recursively search it.
@@ -22,29 +22,25 @@ public class LogReadRequestHandler {
      * @param maxLines the max lines per file to return, or -1 for unlimited
      * @param searchTerm the search term to use, or null to return any lines
      * @return A list of {@link LogFile} for each file checked
-     * @throws LogReaderException if the specified file does not exist
      */
-    public static List<LogFile> readLogs(File logFile, Integer maxLines, String searchTerm, Integer basePathSize) throws LogReaderException {
+    public static List<LogFile> readLogs(File logFile, Integer maxLines, String searchTerm, Integer basePathSize) {
         List<LogFile> logs = new ArrayList<>();
 
         if (!logFile.exists()) {
-            throw new LogReaderException("The log files specified do not exist");
-        }
-
-        if (logFile.isDirectory()) {
+            logs.add(new LogFile(logFile.getName(), logFile.getAbsolutePath().substring(basePathSize + 1), null, "The specified file does not exist"));
+        } else if (logFile.isDirectory()) {
             logs.addAll(readDirectory(logFile, maxLines, searchTerm, basePathSize));
         } else if (logFile.isFile()) {
-            LogFile file = readFile(logFile.toPath(), maxLines, searchTerm, basePathSize);
-            if (file != null) {
-                logs.add(file);
-            }
+            logs.add(readFile(logFile.toPath(), maxLines, searchTerm, basePathSize));
         }
 
         return logs;
     }
 
     /**
-     * Recursively searches logDir and parses logs found there, or an empty list if it cannot access the directory
+     * Recursively searches logDir and parses logs found there, or an empty list if it cannot access the directory.
+     * <p>
+     * If the directory cannot be accessed the list will contain one LogFile entry with an error message for the user.
      *
      * @param logDir the directory to search
      * @param maxLines the max lines per file to return, or -1 for unlimited
@@ -57,30 +53,28 @@ public class LogReadRequestHandler {
 
         if (logFiles == null) {
             LOGGER.info("Cannot access directory" + logDir.getAbsolutePath());
+            logs.add(new LogFile(logDir.getName(), logDir.getAbsolutePath().substring(basePathSize + 1), null, "This directory could not be accessed"));
             return logs;
         }
 
-        for (File logFile : logDir.listFiles()) {
+        for (File logFile : logFiles) {
             if (logFile.isDirectory()) {
                 logs.addAll(readDirectory(logFile, maxLines, searchTerm, basePathSize));
             } else if (logFile.isFile()) {
-                LogFile file = readFile(logFile.toPath(), maxLines, searchTerm, basePathSize);
-                if (file != null) {
-                    logs.add(file);
-                }
+                logs.add(readFile(logFile.toPath(), maxLines, searchTerm, basePathSize));
             }
         }
         return logs;
     }
 
     /**
-     * Reads the file specified by filePath until it's hit the end of the file or maxLines, slecting only lines containing
-     * searchTerm if provided. Returns null if it is not a .log, .txt, or other file type of 'text/plain'
+     * Reads the file specified by filePath until it's hit the end of the file or maxLines, selecting only lines containing
+     * searchTerm if provided. Returns a logfile with an error message if it is not a .log, .txt, or other file type of 'text/plain'
      *
      * @param filePath the path of the file to parse
      * @param maxLines the number of lines to return maximum, or -1 for unlimited
      * @param searchTerm the term to search for, or null to return all lines
-     * @return a {@link LogFile} object containing the lines found or an error message oor null
+     * @return a {@link LogFile} object containing the lines found or an error message
      */
     private static LogFile readFile(Path filePath, Integer maxLines, String searchTerm, Integer basePathSize) {
         LogFile logFile;
@@ -88,8 +82,8 @@ public class LogReadRequestHandler {
         String fileName = filePath.getFileName().toString();
         try {
             if (!fileName.endsWith(".log") && !fileName.endsWith(".txt") && !"text/plain".equals(Files.probeContentType(filePath))) {
-                //If it's a file we likely can't read, return null.
-                return null;
+                //If it's a file we likely can't read, return a message about it.
+                return new LogFile(fileName, filePath.toString().substring(basePathSize + 1), null, "This file is not a text file");
             }
             List<String> logLines = new ArrayList<>();
             boolean limitLines = maxLines > 0;

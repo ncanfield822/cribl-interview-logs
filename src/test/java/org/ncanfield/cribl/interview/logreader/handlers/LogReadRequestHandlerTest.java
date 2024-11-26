@@ -1,10 +1,13 @@
 package org.ncanfield.cribl.interview.logreader.handlers;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.ncanfield.cribl.interview.logreader.exception.LogReaderException;
 import org.ncanfield.cribl.interview.logreader.models.LogFile;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,12 +16,12 @@ public class LogReadRequestHandlerTest {
     private static final String TEST_RESOURCE_PATH = new File("src/test/resources").getAbsolutePath();
 
     @Test
-    public void readsLogs() throws LogReaderException {
+    public void readsLogs() {
         File testFile = new File(TEST_RESOURCE_PATH);
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
 
         //Reads nine of them - does not include the picture or zip files
-        assertEquals(9, logFiles.size());
+        assertEquals(15, logFiles.size());
 
         //Check that the entire works of William Shakesphere was cut off at the defaultLineLimit
         for (LogFile logFile : logFiles) {
@@ -29,7 +32,7 @@ public class LogReadRequestHandlerTest {
     }
 
     @Test
-    public void readsUnlimitedLines() throws LogReaderException {
+    public void readsUnlimitedLines() {
         File testFile = new File(TEST_RESOURCE_PATH + "/secondLevelDir/randomFile2.txt");
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, -1, null, TEST_RESOURCE_PATH.length());
 
@@ -38,7 +41,7 @@ public class LogReadRequestHandlerTest {
     }
 
     @Test
-    public void readsSpecificLogs() throws LogReaderException {
+    public void readsSpecificLogs() {
         File testFile = new File(TEST_RESOURCE_PATH + "/emptyFile.txt");
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
 
@@ -48,7 +51,7 @@ public class LogReadRequestHandlerTest {
     }
 
     @Test
-    public void readsLogsXLines() throws LogReaderException {
+    public void readsLogsXLines() {
         //Returns expected lines from one file
         File testFile = new File(TEST_RESOURCE_PATH + "/numberFile.txt");
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 4, null, TEST_RESOURCE_PATH.length());
@@ -62,26 +65,41 @@ public class LogReadRequestHandlerTest {
         //Returns only one line from each file (or less for the empty file)
         testFile = new File(TEST_RESOURCE_PATH);
         logFiles = LogReadRequestHandler.readLogs(testFile, 1, null, TEST_RESOURCE_PATH.length());
-        assertEquals(9, logFiles.size());
-        assertTrue(logFiles.stream().allMatch(logfile -> logfile.logLines().size() <= 1));
+        assertEquals(15, logFiles.size());
+        int filesWithData = 0;
+
+        for (LogFile logFile : logFiles) {
+            if (logFile.logLines() != null) {
+                assertTrue(logFile.logLines().size() <= 1);
+                filesWithData++;
+            }
+        }
+
+        //Should have been nine text files
+        assertEquals(9, filesWithData);
     }
 
     @Test
-    public void searchesLogs() throws LogReaderException {
+    public void searchesLogs() {
         //Returns only lines containing the word "This"
         File testFile = new File(TEST_RESOURCE_PATH);
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, "This", TEST_RESOURCE_PATH.length());
 
-        //Returns all nine files even ones that did not contain "This"
-        assertEquals(9, logFiles.size());
+        //Returns all fifteen files even ones that did not contain "This"
+        assertEquals(15, logFiles.size());
+        int filesWithData = 0;
         //Only got lines back with "This" in it and nothing else
         for (LogFile logFile : logFiles) {
-            assertTrue(logFile.logLines().stream().allMatch(line -> line.contains("This")));
+            if (logFile.logLines() != null) {
+                assertTrue(logFile.logLines().stream().allMatch(line -> line.contains("This")));
+                filesWithData++;
+            }
         }
+        assertEquals(9, filesWithData);
     }
 
     @Test
-    public void withAllParameters() throws LogReaderException {
+    public void withAllParameters() {
         File testFile = new File(TEST_RESOURCE_PATH + "/longLineFile.txt");
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1, "This", TEST_RESOURCE_PATH.length());
 
@@ -92,18 +110,67 @@ public class LogReadRequestHandlerTest {
     }
 
     @Test
-    public void exceptionWhenNoFileExists() {
+    public void errorWhenNoFileExists() {
         File testFile = new File(TEST_RESOURCE_PATH + "/notAFile.txt");
-        assertThrows(LogReaderException.class, () -> LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length()));
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
+        assertEquals(1, logFiles.size());
+        assertNull(logFiles.get(0).logLines());
+        assertEquals("The specified file does not exist", logFiles.get(0).error());
     }
 
     @Test
-    public void trimsBasePathFromResponse() throws LogReaderException {
+    public void trimsBasePathFromResponse() {
         File testFile = new File(TEST_RESOURCE_PATH + "/secondLevelDir/randomFile.txt");
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1, "This", TEST_RESOURCE_PATH.length());
         assertEquals(1, logFiles.size());
 
         // This will have different results on windows vs linux
         assertTrue("secondLevelDir/randomFile.txt".equals(logFiles.get(0).filePath()) || "secondLevelDir\\randomFile.txt".equals(logFiles.get(0).filePath()));
+    }
+
+    @Test
+    public void returnsErrorForNonTextFile() {
+        File testFile = new File(TEST_RESOURCE_PATH + "/goatPic.jpg");
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
+        assertEquals(1, logFiles.size());
+        assertNull(logFiles.get(0).logLines());
+        assertEquals("This file is not a text file", logFiles.get(0).error());
+    }
+
+    @Test
+    public void returnsErrorForUnreadableDir() {
+        File testFile = Mockito.mock(File.class);
+        Mockito.when(testFile.isDirectory()).thenReturn(true);
+        Mockito.when(testFile.exists()).thenReturn(true);
+        Mockito.when(testFile.listFiles()).thenReturn(null);
+        Mockito.when(testFile.getAbsolutePath()).thenReturn(TEST_RESOURCE_PATH + "/badDir");
+        Mockito.when(testFile.getName()).thenReturn("badDir");
+
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
+        assertEquals(1, logFiles.size());
+        assertNull(logFiles.get(0).logLines());
+        assertEquals("This directory could not be accessed", logFiles.get(0).error());
+    }
+
+    @Test
+    public void handlesFileReadException() {
+        File testFile = Mockito.mock(File.class);
+        Path testPath = Mockito.mock(Path.class);
+
+        Mockito.when(testPath.getFileName()).thenReturn(Path.of("bad.log"));
+        Mockito.when(testPath.toString()).thenReturn(TEST_RESOURCE_PATH + "/bad.log");
+        //This is called in the actual java methods that support the reader
+        Mockito.when(testPath.getFileSystem()).thenThrow(new RuntimeException("Test exception"));
+
+        Mockito.when(testFile.isDirectory()).thenReturn(false);
+        Mockito.when(testFile.isFile()).thenReturn(true);
+        Mockito.when(testFile.exists()).thenReturn(true);
+        Mockito.when(testFile.listFiles()).thenReturn(null);
+        Mockito.when(testFile.toPath()).thenReturn(testPath);
+
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
+        assertEquals(1, logFiles.size());
+        assertNull(logFiles.get(0).logLines());
+        assertEquals("Encountered an exception reading the file", logFiles.get(0).error());
     }
 }
