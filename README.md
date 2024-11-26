@@ -39,6 +39,11 @@ This endpoint will hit the `/logs` endpoints of every server configured via `LOG
 
 This will pass the provided query parameters (if any) down to called servers.
 
+A note on testing: This does not prevent you from adding http://localhost:8080 alongside self in config,
+while this does result in duplicate data, you can see it working as intended through that. You can also add
+random URLs, but unless they serve a `/log` endpoint in the same format it will just result in an error message
+for that URL in the returned object..
+
 ## Query Parameters
 A couple of query parameters are available on the logs endpoint, see below for brief descriptions 
 of them.
