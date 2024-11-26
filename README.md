@@ -121,7 +121,13 @@ A list of lines from the given logfile, in reverse order (Bottom of the file wil
 
 ## Limitations
 The parser used for files currently only supports UTF-8 and single character encodings, and in fact
-the app is setup to assume UTF-8 encoding for all files it encounters (Even if it's mot a text file).
+the app is setup to assume UTF-8 encoding for all files it encounters.
+
+The app will ignore any files that it cannot determine are of type `text/plain` or with a `.log` or `.txt` 
+file extension, since it likely can't parse anything useful from them.
+
+Likewise this application is limited to the access level it's run at - some directories or log files may not
+be accessible to it. While it will fail gracefully, these files will show up in the API with an error message.
 
 ## Performance
 It takes approximately 84ms for the ReverseFileReader implementation to read all 196037 lines of 

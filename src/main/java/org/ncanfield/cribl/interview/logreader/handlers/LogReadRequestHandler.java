@@ -6,6 +6,7 @@ import org.ncanfield.cribl.interview.logreader.utils.ReverseFileReader;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,14 +34,17 @@ public class LogReadRequestHandler {
         if (logFile.isDirectory()) {
             logs.addAll(readDirectory(logFile, maxLines, searchTerm, basePathSize));
         } else if (logFile.isFile()) {
-            logs.add(readFile(logFile.toPath(), maxLines, searchTerm, basePathSize));
+            LogFile file = readFile(logFile.toPath(), maxLines, searchTerm, basePathSize);
+            if (file != null) {
+                logs.add(file);
+            }
         }
 
         return logs;
     }
 
     /**
-     * Recursively searches logDir and parses logs found there
+     * Recursively searches logDir and parses logs found there, or an empty list if it cannot access the directory
      *
      * @param logDir the directory to search
      * @param maxLines the max lines per file to return, or -1 for unlimited
@@ -49,11 +53,21 @@ public class LogReadRequestHandler {
      */
     private static List<LogFile> readDirectory(File logDir, Integer maxLines, String searchTerm, Integer basePathSize) {
         List<LogFile> logs = new ArrayList<>();
+        File[] logFiles = logDir.listFiles();
+
+        if (logFiles == null) {
+            LOGGER.info("Cannot access directory" + logDir.getAbsolutePath());
+            return logs;
+        }
+
         for (File logFile : logDir.listFiles()) {
             if (logFile.isDirectory()) {
                 logs.addAll(readDirectory(logFile, maxLines, searchTerm, basePathSize));
             } else if (logFile.isFile()) {
-                logs.add(readFile(logFile.toPath(), maxLines, searchTerm, basePathSize));
+                LogFile file = readFile(logFile.toPath(), maxLines, searchTerm, basePathSize);
+                if (file != null) {
+                    logs.add(file);
+                }
             }
         }
         return logs;
@@ -61,18 +75,22 @@ public class LogReadRequestHandler {
 
     /**
      * Reads the file specified by filePath until it's hit the end of the file or maxLines, slecting only lines containing
-     * searchTerm if provided
+     * searchTerm if provided. Returns null if it is not a .log, .txt, or other file type of 'text/plain'
      *
      * @param filePath the path of the file to parse
      * @param maxLines the number of lines to return maximum, or -1 for unlimited
      * @param searchTerm the term to search for, or null to return all lines
-     * @return a {@link LogFile} object containing the lines found or an error message
+     * @return a {@link LogFile} object containing the lines found or an error message oor null
      */
     private static LogFile readFile(Path filePath, Integer maxLines, String searchTerm, Integer basePathSize) {
         LogFile logFile;
         ReverseFileReader reverseFileReader = null;
         String fileName = filePath.getFileName().toString();
         try {
+            if (!fileName.endsWith(".log") && !fileName.endsWith(".txt") && !"text/plain".equals(Files.probeContentType(filePath))) {
+                //If it's a file we likely can't read, return null.
+                return null;
+            }
             List<String> logLines = new ArrayList<>();
             boolean limitLines = maxLines > 0;
             boolean doSearch = searchTerm != null;
