@@ -17,7 +17,7 @@ public class LogReadRequestHandlerTest {
         File testFile = new File(TEST_RESOURCE_PATH);
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
 
-        //Reads nine of them
+        //Reads nine of them - does not include the picture or zip files
         assertEquals(9, logFiles.size());
 
         //Check that the entire works of William Shakesphere was cut off at the defaultLineLimit
