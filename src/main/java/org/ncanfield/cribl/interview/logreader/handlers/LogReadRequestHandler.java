@@ -49,12 +49,12 @@ public class LogReadRequestHandler {
     /**
      * Recursively searches logDir and parses logs found there, or an empty list if it cannot access the directory.
      * <p>
-     * If the directory cannot be accessed the list will contain one LogFile entry with an error message for the user.
+     * If the directory cannot be accessed the list will be empty.
      *
      * @param logDir the directory to search
      * @param maxLines the max lines per file to return, or -1 for unlimited
      * @param searchTerm the search term to use, or null to return any ines
-     * @return A list of {@link LogFile} for each file checked
+     * @return A list of {@link LogFile} for each file checked, or an empty list if the directory cannot be accessed
      */
     private static List<LogFile> readDirectory(File logDir, Integer maxLines, String searchTerm, Integer basePathSize) {
         List<LogFile> logs = new ArrayList<>();
@@ -79,12 +79,13 @@ public class LogReadRequestHandler {
 
     /**
      * Reads the file specified by filePath until it's hit the end of the file or maxLines, selecting only lines containing
-     * searchTerm if provided. Returns a logfile with an error message if it is not a .log, .txt, or other file type of 'text/plain'
+     * searchTerm if provided. Returns a logfile with an error message if an exception is encountered reading the file,
+     * or null if it is not a .log, .txt, or other file type of 'text/plain'
      *
      * @param filePath the path of the file to parse
      * @param maxLines the number of lines to return maximum, or -1 for unlimited
      * @param searchTerm the term to search for, or null to return all lines
-     * @return a {@link LogFile} object containing the lines found or an error message
+     * @return a {@link LogFile} object containing the lines found, an error message, or null if it's not a readable file
      */
     private static LogFile readFile(Path filePath, Integer maxLines, String searchTerm, Integer basePathSize) {
         LogFile logFile;
@@ -92,7 +93,7 @@ public class LogReadRequestHandler {
         String fileName = filePath.getFileName().toString();
         try {
             if (!isReadableFile(filePath)) {
-                //If it's a file we likely can't read, return a message about it.
+                //If it's a file we likely can't read, return null.
                 return null;
             }
             List<String> logLines = new ArrayList<>();
