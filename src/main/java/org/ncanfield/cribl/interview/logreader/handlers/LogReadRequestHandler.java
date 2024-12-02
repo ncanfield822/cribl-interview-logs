@@ -1,6 +1,5 @@
 package org.ncanfield.cribl.interview.logreader.handlers;
 
-import org.ncanfield.cribl.interview.logreader.exception.LogReaderException;
 import org.ncanfield.cribl.interview.logreader.models.LogFile;
 import org.ncanfield.cribl.interview.logreader.utils.ReverseFileReader;
 
@@ -29,9 +28,19 @@ public class LogReadRequestHandler {
         if (!logFile.exists()) {
             logs.add(new LogFile(logFile.getName(), logFile.getAbsolutePath().substring(basePathSize + 1), null, "The specified file does not exist"));
         } else if (logFile.isDirectory()) {
-            logs.addAll(readDirectory(logFile, maxLines, searchTerm, basePathSize));
+            if (logFile.listFiles() == null) {
+                // If an unreadable dir was specifically requested, return an error
+                logs.add(new LogFile(logFile.getName(), logFile.getAbsolutePath().substring(basePathSize + 1), null, "This directory could not be accessed"));
+            } else {
+                logs.addAll(readDirectory(logFile, maxLines, searchTerm, basePathSize));
+            }
         } else if (logFile.isFile()) {
-            logs.add(readFile(logFile.toPath(), maxLines, searchTerm, basePathSize));
+            if (isReadableFile(logFile.toPath())) {
+                logs.add(readFile(logFile.toPath(), maxLines, searchTerm, basePathSize));
+            } else {
+                // This should only happen if a user specifies a zip file or the like.
+                logs.add(new LogFile(logFile.getName(), logFile.getAbsolutePath().substring(basePathSize + 1), null, "The specified file is not a text file"));
+            }
         }
 
         return logs;
@@ -53,14 +62,15 @@ public class LogReadRequestHandler {
 
         if (logFiles == null) {
             LOGGER.info("Cannot access directory" + logDir.getAbsolutePath());
-            logs.add(new LogFile(logDir.getName(), logDir.getAbsolutePath().substring(basePathSize + 1), null, "This directory could not be accessed"));
+            // We can't read anything here anyways
             return logs;
         }
 
         for (File logFile : logFiles) {
             if (logFile.isDirectory()) {
                 logs.addAll(readDirectory(logFile, maxLines, searchTerm, basePathSize));
-            } else if (logFile.isFile()) {
+            } else if (logFile.isFile() && isReadableFile(logFile.toPath())) {
+                //This gets skipped if the file isn't a log/text file
                 logs.add(readFile(logFile.toPath(), maxLines, searchTerm, basePathSize));
             }
         }
@@ -81,20 +91,19 @@ public class LogReadRequestHandler {
         ReverseFileReader reverseFileReader = null;
         String fileName = filePath.getFileName().toString();
         try {
-            if (!fileName.endsWith(".log") && !fileName.endsWith(".txt") && !"text/plain".equals(Files.probeContentType(filePath))) {
+            if (!isReadableFile(filePath)) {
                 //If it's a file we likely can't read, return a message about it.
-                return new LogFile(fileName, filePath.toString().substring(basePathSize + 1), null, "This file is not a text file");
+                return null;
             }
             List<String> logLines = new ArrayList<>();
             boolean limitLines = maxLines > 0;
-            boolean doSearch = searchTerm != null;
             reverseFileReader = new ReverseFileReader(StandardCharsets.UTF_8, filePath, 4096);
             // Keep parsing the file while it has more data and either we're not limiting lines or have kept below it
             while (reverseFileReader.hasMoreData() &&
                     (!limitLines || logLines.size() < maxLines)) {
                 String logLine = reverseFileReader.readLine();
                 // We want this line if it exists and we're either not searching or it contains the search term
-                if (logLine != null && (!doSearch || logLine.contains(searchTerm))) {
+                if (shouldAddLine(logLine, searchTerm)) {
                     logLines.add(logLine);
                 }
             }
@@ -113,5 +122,43 @@ public class LogReadRequestHandler {
             }
         }
         return logFile;
+    }
+
+    /**
+     * Checks if this app can read filePath.
+     * <p/>
+     * For this to be true, the file name must end with .log, .txt. or be of type text/plain
+     *
+     * @param filePath the file path to check
+     * @return true if this file can be read as a log
+     */
+    private static boolean isReadableFile(Path filePath) {
+        boolean isPlainText = false;
+
+        try {
+            isPlainText = "text/plain".equals(Files.probeContentType(filePath));
+        } catch (Exception e) {
+            // If we get an exception here assuming it's not plaintext
+            LOGGER.info("Exception checking file content type: " + e.getMessage());
+        }
+
+        return filePath.getFileName().toString().endsWith(".log") ||
+                filePath.getFileName().toString().endsWith(".txt") ||
+                isPlainText;
+    }
+
+    /**
+     * Checks if a log line should be added to results.
+     * <p/>
+     * This is true if the logLine is not null, not blank, and either the searchTerm is null or is present in the logLine
+     *
+     * @param logLine the log line to check
+     * @param searchTerm the search term to use, or null for none
+     * @return true if the log line should be added
+     */
+    private static boolean shouldAddLine(String logLine, String searchTerm) {
+        return logLine != null &&
+                !logLine.isBlank() &&
+                (searchTerm == null || logLine.contains(searchTerm));
     }
 }

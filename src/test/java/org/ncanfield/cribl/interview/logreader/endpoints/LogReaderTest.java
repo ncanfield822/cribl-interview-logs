@@ -36,7 +36,7 @@ public class LogReaderTest {
         //Just make sure the simplest happy path does what we want
         LogReadResponse response = logReader.readLogs(null, null, null);
         //Reads nine of them
-        assertEquals(15, response.logFiles().size());
+        assertEquals(11, response.logFiles().size());
         assertTrue(response.errors().isEmpty());
 
         //Check that the entire works of William Shakesphere was cut off at the defaultLineLimit
@@ -53,7 +53,7 @@ public class LogReaderTest {
         LogReadResponse response = logReader.readLogs("secondLevelDir/randomFile2.txt", null, null);
 
         assertEquals(1, response.logFiles().size());
-        assertEquals(196037, response.logFiles().get(0).logLines().size());
+        assertEquals(153632, response.logFiles().get(0).logLines().size());
         assertTrue(response.errors().isEmpty());
     }
 

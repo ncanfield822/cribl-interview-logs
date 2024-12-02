@@ -20,8 +20,8 @@ public class LogReadRequestHandlerTest {
         File testFile = new File(TEST_RESOURCE_PATH);
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
 
-        //Reads nine of them - does not include the picture or zip files
-        assertEquals(15, logFiles.size());
+        //Reads eleven of them - does not include the picture or zip files
+        assertEquals(11, logFiles.size());
 
         //Check that the entire works of William Shakesphere was cut off at the defaultLineLimit
         for (LogFile logFile : logFiles) {
@@ -37,7 +37,28 @@ public class LogReadRequestHandlerTest {
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, -1, null, TEST_RESOURCE_PATH.length());
 
         assertEquals(1, logFiles.size());
-        assertEquals(196037, logFiles.get(0).logLines().size());
+        assertEquals(153632, logFiles.get(0).logLines().size());
+    }
+
+    @Test
+    public void emptyLinesForAllWhitespaces() {
+        File testFile = new File(TEST_RESOURCE_PATH + "/onlyWhitespaces.txt");
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, -1, null, TEST_RESOURCE_PATH.length());
+
+        assertEquals(1, logFiles.size());
+        assertTrue(logFiles.get(0).logLines().isEmpty());
+    }
+
+    @Test
+    public void skipsWhitespaces() {
+        File testFile = new File(TEST_RESOURCE_PATH + "/whitespaces.log");
+        List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, -1, null, TEST_RESOURCE_PATH.length());
+
+        assertEquals(1, logFiles.size());
+        assertEquals(3, logFiles.get(0).logLines().size());
+        assertEquals("Newest Line", logFiles.get(0).logLines().get(0));
+        assertEquals("After various whitespace lines", logFiles.get(0).logLines().get(1));
+        assertEquals("Oldest line", logFiles.get(0).logLines().get(2));
     }
 
     @Test
@@ -65,7 +86,7 @@ public class LogReadRequestHandlerTest {
         //Returns only one line from each file (or less for the empty file)
         testFile = new File(TEST_RESOURCE_PATH);
         logFiles = LogReadRequestHandler.readLogs(testFile, 1, null, TEST_RESOURCE_PATH.length());
-        assertEquals(15, logFiles.size());
+        assertEquals(11, logFiles.size());
         int filesWithData = 0;
 
         for (LogFile logFile : logFiles) {
@@ -76,7 +97,7 @@ public class LogReadRequestHandlerTest {
         }
 
         //Should have been nine text files
-        assertEquals(9, filesWithData);
+        assertEquals(11, filesWithData);
     }
 
     @Test
@@ -86,16 +107,16 @@ public class LogReadRequestHandlerTest {
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, "This", TEST_RESOURCE_PATH.length());
 
         //Returns all fifteen files even ones that did not contain "This"
-        assertEquals(15, logFiles.size());
+        assertEquals(11, logFiles.size());
         int filesWithData = 0;
         //Only got lines back with "This" in it and nothing else
         for (LogFile logFile : logFiles) {
-            if (logFile.logLines() != null) {
+            if (!logFile.logLines().isEmpty()) {
                 assertTrue(logFile.logLines().stream().allMatch(line -> line.contains("This")));
                 filesWithData++;
             }
         }
-        assertEquals(9, filesWithData);
+        assertEquals(6, filesWithData);
     }
 
     @Test
@@ -134,7 +155,7 @@ public class LogReadRequestHandlerTest {
         List<LogFile> logFiles = LogReadRequestHandler.readLogs(testFile, 1000, null, TEST_RESOURCE_PATH.length());
         assertEquals(1, logFiles.size());
         assertNull(logFiles.get(0).logLines());
-        assertEquals("This file is not a text file", logFiles.get(0).error());
+        assertEquals("The specified file is not a text file", logFiles.get(0).error());
     }
 
     @Test

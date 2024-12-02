@@ -169,8 +169,6 @@ public class ReverseFileReader implements Closeable {
             bufferOffset += Math.min(spillover.length, newLines.get(0).length);
         }
 
-        //Catch edge cases where buffer refilled
-
         // Last newline was at the end of this buffer
         lastNewline = newBuffer.length;
 
